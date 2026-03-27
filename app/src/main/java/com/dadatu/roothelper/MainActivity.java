@@ -100,7 +100,18 @@ public class MainActivity extends AppCompatActivity {
             try {
                 result = task.run();
             } catch (Throwable t) {
-                result = "ERROR: " + t.getMessage();
+                String msg = t.getMessage();
+                if (msg == null || msg.isEmpty()) msg = t.toString();
+                Throwable cause = t.getCause();
+                while ((msg == null || msg.contains("unexpected end of stream")) && cause != null) {
+                    if (cause.getMessage() != null && !cause.getMessage().isEmpty()) {
+                        msg = cause.getMessage();
+                    } else {
+                        msg = cause.toString();
+                    }
+                    cause = cause.getCause();
+                }
+                result = "ERROR: " + msg;
             }
             String finalResult = result;
             runOnUiThread(() -> {

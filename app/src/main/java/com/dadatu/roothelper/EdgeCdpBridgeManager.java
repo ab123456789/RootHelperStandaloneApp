@@ -173,19 +173,29 @@ public class EdgeCdpBridgeManager {
     }
 
     private String findDevtoolsSocket(String pid) throws Exception {
-        String exact = execRoot("cat /proc/net/unix | grep -o '@webview_devtools_remote_" + pid + "' | head -n 1 || true").trim();
+        String exact = execRoot("grep -o '@webview_devtools_remote_" + pid + "' /proc/net/unix | head -n 1 || true").trim();
         if (!exact.isEmpty()) {
             return stripAbstractPrefix(exact);
         }
 
-        String fallback = execRoot("cat /proc/net/unix | grep -o '@webview_devtools_remote_[0-9]\\+' | head -n 1 || true").trim();
-        if (!fallback.isEmpty()) {
-            return stripAbstractPrefix(fallback);
+        String exactByPid = execRoot("for p in $(pidof com.microsoft.emmx || true); do grep -o '@webview_devtools_remote_'\"$p\" /proc/net/unix; done | head -n 1 || true").trim();
+        if (!exactByPid.isEmpty()) {
+            return stripAbstractPrefix(exactByPid);
         }
 
-        String chromeFallback = execRoot("cat /proc/net/unix | grep -o '@chrome_devtools_remote' | head -n 1 || true").trim();
-        if (!chromeFallback.isEmpty()) {
-            return stripAbstractPrefix(chromeFallback);
+        String browserFallback = execRoot("grep -o '@chrome_devtools_remote[^[:space:]]*' /proc/net/unix | head -n 1 || true").trim();
+        if (!browserFallback.isEmpty()) {
+            return stripAbstractPrefix(browserFallback);
+        }
+
+        String webviewFallback = execRoot("grep -o '@webview_devtools_remote_[0-9][0-9]*' /proc/net/unix | head -n 1 || true").trim();
+        if (!webviewFallback.isEmpty()) {
+            return stripAbstractPrefix(webviewFallback);
+        }
+
+        String anyDevtools = execRoot("grep -o '@[^[:space:]]*devtools[^[:space:]]*' /proc/net/unix | head -n 1 || true").trim();
+        if (!anyDevtools.isEmpty()) {
+            return stripAbstractPrefix(anyDevtools);
         }
         return null;
     }
@@ -236,6 +246,22 @@ public class EdgeCdpBridgeManager {
         try {
             String out = execRoot("tail -n 40 " + shellQuote(path) + " 2>/dev/null || true");
             return out == null ? "" : out.trim();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String dumpDevtoolsScan(String pid) {
+        try {
+            String cmd = "(echo PID=" + shellQuote(pid)
+                + "; echo '--- pidof emmx ---'; pidof com.microsoft.emmx || true"
+                + "; echo '--- ps emmx ---'; ps -A | grep com.microsoft.emmx || true"
+                + "; echo '--- devtools in /proc/net/unix ---'; grep devtools /proc/net/unix || true"
+                + "; echo '--- chrome/webview abstract sockets ---'; grep -o '@[^[:space:]]*devtools[^[:space:]]*' /proc/net/unix || true)"
+                + " > " + shellQuote(EDGE_SCAN_LOG) + " 2>&1";
+            execRootAllowFailure(cmd);
+            String out = execRootAllowFailure("tail -n 80 " + shellQuote(EDGE_SCAN_LOG) + " 2>/dev/null || true");
+            return out == null ? "" : out.trim().replace('\n', ' ').replace('\r', ' ');
         } catch (Exception ignored) {
             return "";
         }
