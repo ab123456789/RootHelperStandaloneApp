@@ -1,6 +1,6 @@
 package com.dadatu.roothelper;
 
-import com.github.topjohnwu.superuser.Shell;
+import com.topjohnwu.superuser.Shell;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
