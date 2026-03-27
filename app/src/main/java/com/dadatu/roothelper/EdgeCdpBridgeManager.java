@@ -11,8 +11,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
+import java.net.SocketException;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -198,36 +199,53 @@ public class EdgeCdpBridgeManager {
         private void handleClient(Socket client) {
             LocalSocket local = new LocalSocket();
             try (Socket tcp = client) {
+                tcp.setKeepAlive(true);
+                tcp.setTcpNoDelay(true);
                 local.connect(new LocalSocketAddress(socketName, LocalSocketAddress.Namespace.ABSTRACT));
+
                 InputStream tcpIn = tcp.getInputStream();
                 OutputStream tcpOut = tcp.getOutputStream();
                 InputStream localIn = local.getInputStream();
                 OutputStream localOut = local.getOutputStream();
 
-                Thread t1 = new Thread(() -> pipe(tcpIn, localOut));
-                Thread t2 = new Thread(() -> pipe(localIn, tcpOut));
+                CountDownLatch done = new CountDownLatch(2);
+                Thread t1 = new Thread(() -> pipeTcpToLocal(tcp, tcpIn, local, localOut, done), "edge-cdp-tcp-to-local");
+                Thread t2 = new Thread(() -> pipeLocalToTcp(local, localIn, tcp, tcpOut, done), "edge-cdp-local-to-tcp");
                 t1.start();
                 t2.start();
-                t1.join();
-                try { local.shutdownOutput(); } catch (Exception ignored) {}
-                t2.join();
+                done.await();
             } catch (Exception ignored) {
             } finally {
                 try { local.close(); } catch (Exception ignored) {}
             }
         }
 
+        private void pipeTcpToLocal(Socket tcp, InputStream in, LocalSocket local, OutputStream out, CountDownLatch done) {
+            pipe(in, out);
+            try { local.shutdownOutput(); } catch (Exception ignored) {}
+            try { tcp.shutdownInput(); } catch (Exception ignored) {}
+            done.countDown();
+        }
+
+        private void pipeLocalToTcp(LocalSocket local, InputStream in, Socket tcp, OutputStream out, CountDownLatch done) {
+            pipe(in, out);
+            try { tcp.shutdownOutput(); } catch (Exception ignored) {}
+            try { local.shutdownInput(); } catch (Exception ignored) {}
+            done.countDown();
+        }
+
         private void pipe(InputStream in, OutputStream out) {
             byte[] buffer = new byte[8192];
-            int n;
             try {
-                while ((n = in.read(buffer)) >= 0) {
+                while (true) {
+                    int n = in.read(buffer);
+                    if (n < 0) break;
+                    if (n == 0) continue;
                     out.write(buffer, 0, n);
                     out.flush();
                 }
+            } catch (SocketException ignored) {
             } catch (Exception ignored) {
-            } finally {
-                try { out.close(); } catch (Exception ignored) {}
             }
         }
     }
