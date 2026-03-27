@@ -5,8 +5,10 @@ import android.net.LocalSocketAddress;
 
 import com.topjohnwu.superuser.Shell;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
@@ -68,6 +70,40 @@ public class EdgeCdpBridgeManager {
         }
     }
 
+    public JSONObject fetchVersion() throws Exception {
+        EdgeInfo info = resolveEdgeInfo();
+        String body = requestSocket(info.socketName, "/json/version");
+        JSONObject obj = new JSONObject();
+        obj.put("ok", true);
+        obj.put("package", DEFAULT_PACKAGE);
+        obj.put("pid", info.pid);
+        obj.put("socketName", info.socketName);
+        obj.put("path", "/json/version");
+        obj.put("raw", body);
+        try {
+            obj.put("json", new JSONObject(body));
+        } catch (Exception ignored) {
+        }
+        return obj;
+    }
+
+    public JSONObject fetchList() throws Exception {
+        EdgeInfo info = resolveEdgeInfo();
+        String body = requestSocket(info.socketName, "/json/list");
+        JSONObject obj = new JSONObject();
+        obj.put("ok", true);
+        obj.put("package", DEFAULT_PACKAGE);
+        obj.put("pid", info.pid);
+        obj.put("socketName", info.socketName);
+        obj.put("path", "/json/list");
+        obj.put("raw", body);
+        try {
+            obj.put("json", new JSONArray(body));
+        } catch (Exception ignored) {
+        }
+        return obj;
+    }
+
     private JSONObject bridgeInfo(boolean reused, String pkg, String pid, String socketName, int port) throws Exception {
         JSONObject obj = new JSONObject();
         obj.put("ok", true);
@@ -79,6 +115,53 @@ public class EdgeCdpBridgeManager {
         obj.put("versionUrl", "http://127.0.0.1:" + port + "/json/version");
         obj.put("listUrl", "http://127.0.0.1:" + port + "/json/list");
         return obj;
+    }
+
+    private EdgeInfo resolveEdgeInfo() throws Exception {
+        synchronized (lock) {
+            ensureEdgeRunning(DEFAULT_PACKAGE);
+            String pid = findPackagePid(DEFAULT_PACKAGE);
+            if (pid == null || pid.isEmpty()) {
+                throw new IllegalStateException("edge pid not found");
+            }
+            String socketName = findDevtoolsSocket(pid);
+            if (socketName == null || socketName.isEmpty()) {
+                throw new IllegalStateException("edge devtools socket not found");
+            }
+            return new EdgeInfo(pid, socketName);
+        }
+    }
+
+    private String requestSocket(String socketName, String path) throws Exception {
+        try (LocalSocket local = new LocalSocket()) {
+            local.connect(new LocalSocketAddress(socketName, LocalSocketAddress.Namespace.ABSTRACT));
+            local.setSoTimeout(5000);
+            OutputStream out = local.getOutputStream();
+            InputStream in = local.getInputStream();
+
+            String req = "GET " + path + " HTTP/1.1\r\n"
+                + "Host: 127.0.0.1\r\n"
+                + "Connection: close\r\n"
+                + "\r\n";
+            out.write(req.getBytes());
+            out.flush();
+            try { local.shutdownOutput(); } catch (Exception ignored) {}
+
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            while (true) {
+                int n = in.read(chunk);
+                if (n < 0) break;
+                if (n == 0) continue;
+                buf.write(chunk, 0, n);
+            }
+            String response = buf.toString();
+            int split = response.indexOf("\r\n\r\n");
+            if (split >= 0) {
+                return response.substring(split + 4);
+            }
+            return response;
+        }
     }
 
     private void ensureEdgeRunning(String pkg) throws Exception {
@@ -145,6 +228,16 @@ public class EdgeCdpBridgeManager {
     private String shellQuote(String s) {
         if (s == null || s.isEmpty()) return "''";
         return "'" + s.replace("'", "'\"'\"'") + "'";
+    }
+
+    private static class EdgeInfo {
+        final String pid;
+        final String socketName;
+
+        EdgeInfo(String pid, String socketName) {
+            this.pid = pid;
+            this.socketName = socketName;
+        }
     }
 
     private static class BridgeServer {
