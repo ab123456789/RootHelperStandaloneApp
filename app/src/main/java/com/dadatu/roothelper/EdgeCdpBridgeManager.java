@@ -92,18 +92,22 @@ public class EdgeCdpBridgeManager {
     private void startRootBridge(int localPort, String socketName) throws Exception {
         ApplicationInfo ai = appContext.getApplicationInfo();
         String apkPath = ai.sourceDir;
-        String cmd = "pkill -f 'com.dadatu.roothelper.RootEdgeBridgeMain " + localPort + "' 2>/dev/null || true; "
-            + "CLASSPATH=" + shellQuote(apkPath)
-            + " app_process /system/bin com.dadatu.roothelper.RootEdgeBridgeMain "
-            + localPort + " " + shellQuote(socketName)
-            + " >/data/local/tmp/root-edge-bridge.log 2>&1 </dev/null &";
-        execRoot(cmd);
 
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(300);
-            if (isLocalPortOpen(localPort)) return;
+        execRoot("rm -f /data/local/tmp/root-probe.log /data/local/tmp/root-edge-bridge.log");
+
+        String probeCmd = "CLASSPATH=" + shellQuote(apkPath)
+            + " app_process /system/bin com.dadatu.roothelper.RootProbeMain "
+            + localPort + " " + shellQuote(socketName)
+            + " > /data/local/tmp/root-probe-stdout.log 2>&1";
+        execRoot(probeCmd);
+
+        String probeLog = execRoot("cat /data/local/tmp/root-probe.log 2>/dev/null || true").trim();
+        if (probeLog.isEmpty()) {
+            String stdout = execRoot("cat /data/local/tmp/root-probe-stdout.log 2>/dev/null || true");
+            throw new IllegalStateException("root probe did not write log. stdout=" + stdout);
         }
-        throw new IllegalStateException("root edge bridge did not start");
+
+        throw new IllegalStateException("root probe ok; bridge not re-enabled yet");
     }
 
     private void ensureEdgeRunning(String pkg) throws Exception {
