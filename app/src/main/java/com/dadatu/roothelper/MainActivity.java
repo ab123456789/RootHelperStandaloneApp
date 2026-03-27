@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnId;
     private Button btnBoot;
     private Button btnEdge;
+    private Button btnSelinuxPermissive;
 
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {});
@@ -49,51 +50,67 @@ public class MainActivity extends AppCompatActivity {
         btnId = findViewById(R.id.btnId);
         btnBoot = findViewById(R.id.btnBoot);
         btnEdge = findViewById(R.id.btnEdge);
+        btnSelinuxPermissive = findViewById(R.id.btnSelinuxPermissive);
 
         applyRootConnectedState();
         applyCdpDisconnectedState();
 
-        btnStart.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
+        btnStart.setOnClickListener(v -> runTask(() -> {
             startHelperService();
             Thread.sleep(1200);
             return "Root 桥接正常\n\n" + HttpUtils.get(RootHelperConfig.HOST + "/ping");
         }, () -> {
             applyRootConnectedState();
             applyCdpDisconnectedState();
-        }, null));
+        }, this::applyRootDisconnectedState));
 
-        btnStop.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
+        btnStop.setOnClickListener(v -> runTask(() -> {
             stopService(new Intent(this, RootHelperService.class));
             return "桥接模式已断开";
         }, () -> {
             applyRootDisconnectedState();
             applyCdpDisconnectedState();
-        }, null));
+        }, this::applyRootDisconnectedState));
 
-        btnPing.setOnClickListener(v -> runTask(getString(R.string.status_working),
+        btnPing.setOnClickListener(v -> runTask(
             () -> HttpUtils.get(RootHelperConfig.HOST + "/ping"),
             this::applyRootConnectedState,
-            null));
+            this::applyRootDisconnectedState));
 
-        btnId.setOnClickListener(v -> runTask(getString(R.string.status_working),
+        btnId.setOnClickListener(v -> runTask(
             () -> "Root 权限正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/exec",
                 RootHelperConfig.TOKEN,
                 "{\"argv\":[\"id\"]}"
             ),
             this::applyRootConnectedState,
-            null));
+            this::applyRootDisconnectedState));
+
+        btnSelinuxPermissive.setOnClickListener(v -> runTask(
+            () -> "SELinux 已切换为宽松模式\n\n" + HttpUtils.postJson(
+                RootHelperConfig.HOST + "/exec",
+                RootHelperConfig.TOKEN,
+                "{\"argv\":[\"sh\",\"-c\",\"setenforce 0\"]}"
+            ),
+            this::applyRootConnectedState,
+            this::applyRootDisconnectedState));
 
         btnBoot.setOnClickListener(v -> toggleBoot());
 
-        btnEdge.setOnClickListener(v -> runTask(getString(R.string.status_working),
+        btnEdge.setOnClickListener(v -> runTask(
             () -> "CDP 连接正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/edge/open",
                 RootHelperConfig.TOKEN,
                 "{}"
             ),
-            this::applyCdpConnectedState,
-            () -> applyCdpDisconnectedState()));
+            () -> {
+                applyRootConnectedState();
+                applyCdpConnectedState();
+            },
+            () -> {
+                applyRootConnectedState();
+                applyCdpDisconnectedState();
+            }));
 
         updateBootButton();
         ensureNotificationPermission();
@@ -109,9 +126,8 @@ public class MainActivity extends AppCompatActivity {
         String run() throws Exception;
     }
 
-    private void runTask(String status, Task task, Runnable onSuccess, Runnable onError) {
+    private void runTask(Task task, Runnable onSuccess, Runnable onError) {
         setBusy(true);
-        textStatus.setText(status);
         executor.execute(() -> {
             String result;
             boolean ok = false;
@@ -153,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
         btnId.setEnabled(!busy);
         btnBoot.setEnabled(!busy);
         btnEdge.setEnabled(!busy);
+        btnSelinuxPermissive.setEnabled(!busy);
     }
 
     private void applyRootConnectedState() {
@@ -162,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void applyRootDisconnectedState() {
-        textStatus.setText("桥接模式已断开");
+        textStatus.setText("Root 桥接已掉线");
         textStatus.setTextColor(getColor(R.color.rabbit_danger));
         textStatus.setBackgroundResource(R.drawable.bg_rabbit_status_danger);
     }

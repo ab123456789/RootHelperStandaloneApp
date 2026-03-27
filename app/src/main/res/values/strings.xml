@@ -10,6 +10,7 @@
     <string name="btn_run_id">授予 Root 权限</string>
     <string name="btn_toggle_boot">切换开机自启</string>
     <string name="btn_open_edge_cdp">Edge CDP 连接</string>
+    <string name="btn_set_selinux_permissive">SELinux 宽松模式</string>
     <string name="label_output">运行面板</string>
     <string name="label_output_desc">桥接状态、连接反馈与调试信息会在这里汇总显示。</string>
     <string name="notif_channel_name">cm service</string>

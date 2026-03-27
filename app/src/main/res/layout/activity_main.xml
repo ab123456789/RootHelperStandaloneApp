@@ -92,7 +92,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="58dp"
                 android:background="@drawable/bg_rabbit_button_primary"
-                android:elevation="3dp"
+                android:elevation="2dp"
                 android:text="@string/btn_start_service"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFFFF"
@@ -120,6 +120,19 @@
                 android:background="@drawable/bg_rabbit_button"
                 android:elevation="1dp"
                 android:text="@string/btn_run_id"
+                android:textAllCaps="false"
+                android:textColor="@color/rabbit_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnSelinuxPermissive"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_rabbit_button"
+                android:elevation="1dp"
+                android:text="@string/btn_set_selinux_permissive"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_text"
                 android:textSize="15sp"
