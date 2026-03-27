@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">RootHelper</string>
+    <string name="app_name">cm</string>
     <string name="status_ready">桥接待命</string>
     <string name="status_working">桥接处理中…</string>
     <string name="title_roothelper">RootHelper</string>

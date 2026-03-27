@@ -21,9 +21,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🐰 RootHelper"
+                android:text="🐰 cm"
                 android:textColor="@color/rabbit_text"
-                android:textSize="26sp"
+                android:textSize="28sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -59,8 +59,9 @@
             <Button
                 android:id="@+id/btnStart"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
                 android:text="@string/btn_start_service"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_primary_dark"
@@ -69,9 +70,10 @@
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
                 android:text="@string/btn_stop_service"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_primary_dark"
@@ -80,9 +82,10 @@
             <Button
                 android:id="@+id/btnPing"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
                 android:text="@string/btn_ping"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_primary_dark"
@@ -91,9 +94,10 @@
             <Button
                 android:id="@+id/btnId"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
                 android:text="@string/btn_run_id"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_primary_dark"
@@ -102,9 +106,10 @@
             <Button
                 android:id="@+id/btnBoot"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
                 android:text="@string/btn_toggle_boot"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_primary_dark"
@@ -113,9 +118,10 @@
             <Button
                 android:id="@+id/btnEdge"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
                 android:text="@string/btn_open_edge_cdp"
                 android:textAllCaps="false"
                 android:textColor="@color/rabbit_primary_dark"
