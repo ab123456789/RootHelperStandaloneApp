@@ -5,52 +5,34 @@ import android.net.LocalSocketAddress;
 
 import com.topjohnwu.superuser.Shell;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ServerSocket;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class EdgeCdpBridgeManager {
 
     private static final String DEFAULT_PACKAGE = "com.microsoft.emmx";
     private static final int DEFAULT_PORT = 19222;
+    private static final String DEFAULT_SERIAL = "emulator-5554";
 
     private final Object lock = new Object();
-    private volatile BridgeServer bridge;
+    private volatile String forwardedSocketName;
 
     public JSONObject openEdgeBridge() throws Exception {
         synchronized (lock) {
-            ensureEdgeRunning(DEFAULT_PACKAGE);
-            String pid = findPackagePid(DEFAULT_PACKAGE);
-            if (pid == null || pid.isEmpty()) {
-                throw new IllegalStateException("edge pid not found");
+            EdgeInfo info = resolveEdgeInfo();
+            boolean reused = info.socketName.equals(forwardedSocketName) && isLocalPortOpen(DEFAULT_PORT);
+            if (!reused) {
+                adbKillForward(DEFAULT_PORT);
+                adbForward(DEFAULT_PORT, info.socketName);
+                forwardedSocketName = info.socketName;
             }
-
-            String socketName = findDevtoolsSocket(pid);
-            if (socketName == null || socketName.isEmpty()) {
-                throw new IllegalStateException("edge devtools socket not found");
-            }
-
-            if (bridge != null && bridge.isRunning()) {
-                if (bridge.matches(socketName, DEFAULT_PORT)) {
-                    return bridgeInfo(true, DEFAULT_PACKAGE, pid, socketName, DEFAULT_PORT);
-                }
-                bridge.close();
-                bridge = null;
-            }
-
-            bridge = new BridgeServer(socketName, DEFAULT_PORT);
-            bridge.start();
-            return bridgeInfo(false, DEFAULT_PACKAGE, pid, socketName, DEFAULT_PORT);
+            return bridgeInfo(reused, DEFAULT_PACKAGE, info.pid, info.socketName, DEFAULT_PORT);
         }
     }
 
@@ -59,49 +41,15 @@ public class EdgeCdpBridgeManager {
             JSONObject obj = new JSONObject();
             obj.put("ok", true);
             obj.put("package", DEFAULT_PACKAGE);
-            obj.put("running", bridge != null && bridge.isRunning());
-            if (bridge != null && bridge.isRunning()) {
-                obj.put("socketName", bridge.socketName);
-                obj.put("localPort", bridge.localPort);
-                obj.put("versionUrl", "http://127.0.0.1:" + bridge.localPort + "/json/version");
-                obj.put("listUrl", "http://127.0.0.1:" + bridge.localPort + "/json/list");
+            obj.put("running", forwardedSocketName != null && isLocalPortOpen(DEFAULT_PORT));
+            if (forwardedSocketName != null) {
+                obj.put("socketName", forwardedSocketName);
+                obj.put("localPort", DEFAULT_PORT);
+                obj.put("versionUrl", "http://127.0.0.1:" + DEFAULT_PORT + "/json/version");
+                obj.put("listUrl", "http://127.0.0.1:" + DEFAULT_PORT + "/json/list");
             }
             return obj;
         }
-    }
-
-    public JSONObject fetchVersion() throws Exception {
-        EdgeInfo info = resolveEdgeInfo();
-        String body = requestSocket(info.socketName, "/json/version");
-        JSONObject obj = new JSONObject();
-        obj.put("ok", true);
-        obj.put("package", DEFAULT_PACKAGE);
-        obj.put("pid", info.pid);
-        obj.put("socketName", info.socketName);
-        obj.put("path", "/json/version");
-        obj.put("raw", body);
-        try {
-            obj.put("json", new JSONObject(body));
-        } catch (Exception ignored) {
-        }
-        return obj;
-    }
-
-    public JSONObject fetchList() throws Exception {
-        EdgeInfo info = resolveEdgeInfo();
-        String body = requestSocket(info.socketName, "/json/list");
-        JSONObject obj = new JSONObject();
-        obj.put("ok", true);
-        obj.put("package", DEFAULT_PACKAGE);
-        obj.put("pid", info.pid);
-        obj.put("socketName", info.socketName);
-        obj.put("path", "/json/list");
-        obj.put("raw", body);
-        try {
-            obj.put("json", new JSONArray(body));
-        } catch (Exception ignored) {
-        }
-        return obj;
     }
 
     private JSONObject bridgeInfo(boolean reused, String pkg, String pid, String socketName, int port) throws Exception {
@@ -132,36 +80,85 @@ public class EdgeCdpBridgeManager {
         }
     }
 
-    private String requestSocket(String socketName, String path) throws Exception {
-        try (LocalSocket local = new LocalSocket()) {
-            local.connect(new LocalSocketAddress(socketName, LocalSocketAddress.Namespace.ABSTRACT));
-            local.setSoTimeout(5000);
-            OutputStream out = local.getOutputStream();
-            InputStream in = local.getInputStream();
-
-            String req = "GET " + path + " HTTP/1.1\r\n"
-                + "Host: 127.0.0.1\r\n"
-                + "Connection: close\r\n"
-                + "\r\n";
-            out.write(req.getBytes());
-            out.flush();
-            try { local.shutdownOutput(); } catch (Exception ignored) {}
-
-            ByteArrayOutputStream buf = new ByteArrayOutputStream();
-            byte[] chunk = new byte[8192];
-            while (true) {
-                int n = in.read(chunk);
-                if (n < 0) break;
-                if (n == 0) continue;
-                buf.write(chunk, 0, n);
-            }
-            String response = buf.toString();
-            int split = response.indexOf("\r\n\r\n");
-            if (split >= 0) {
-                return response.substring(split + 4);
-            }
-            return response;
+    private boolean isLocalPortOpen(int port) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress("127.0.0.1", port), 500);
+            return true;
+        } catch (Exception ignored) {
+            return false;
         }
+    }
+
+    private void adbForward(int localPort, String socketName) throws Exception {
+        String cmd = "host-serial:" + DEFAULT_SERIAL + ":forward:tcp:" + localPort + ";localabstract:" + socketName;
+        byte[] response = adbRequest(cmd);
+        String body = decodeAdbBody(response);
+        if (body != null && !body.isEmpty() && !body.contains(String.valueOf(localPort))) {
+            throw new IllegalStateException("adb forward failed: " + body);
+        }
+    }
+
+    private void adbKillForward(int localPort) throws Exception {
+        adbRequest("host-serial:" + DEFAULT_SERIAL + ":killforward:tcp:" + localPort);
+    }
+
+    private byte[] adbRequest(String command) throws Exception {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress("127.0.0.1", 5037), 2000);
+            socket.setSoTimeout(2000);
+            OutputStream out = socket.getOutputStream();
+            InputStream in = socket.getInputStream();
+            byte[] payload = String.format("%04x%s", command.length(), command).getBytes();
+            out.write(payload);
+            out.flush();
+
+            byte[] status = readExact(in, 4);
+            if (status == null) {
+                throw new IllegalStateException("adb status empty");
+            }
+            String statusText = new String(status);
+            ByteArrayOutputStream rest = new ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            try {
+                while (true) {
+                    int n = in.read(buf);
+                    if (n < 0) break;
+                    if (n == 0) continue;
+                    rest.write(buf, 0, n);
+                }
+            } catch (Exception ignored) {
+            }
+            if (!"OKAY".equals(statusText)) {
+                throw new IllegalStateException("adb request failed: " + decodeAdbBody(rest.toByteArray()));
+            }
+            return rest.toByteArray();
+        }
+    }
+
+    private byte[] readExact(InputStream in, int length) throws Exception {
+        byte[] data = new byte[length];
+        int off = 0;
+        while (off < length) {
+            int n = in.read(data, off, length - off);
+            if (n < 0) return null;
+            off += n;
+        }
+        return data;
+    }
+
+    private String decodeAdbBody(byte[] body) {
+        if (body == null || body.length == 0) return "";
+        String s = new String(body);
+        if (s.length() >= 4) {
+            try {
+                int n = Integer.parseInt(s.substring(0, 4), 16);
+                if (s.length() >= 4 + n) {
+                    return s.substring(4, 4 + n);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return s;
     }
 
     private void ensureEdgeRunning(String pkg) throws Exception {
@@ -237,109 +234,6 @@ public class EdgeCdpBridgeManager {
         EdgeInfo(String pid, String socketName) {
             this.pid = pid;
             this.socketName = socketName;
-        }
-    }
-
-    private static class BridgeServer {
-        private final String socketName;
-        private final int localPort;
-        private volatile boolean running;
-        private ServerSocket serverSocket;
-        private Thread acceptThread;
-        private ExecutorService clientPool;
-
-        BridgeServer(String socketName, int localPort) {
-            this.socketName = socketName;
-            this.localPort = localPort;
-        }
-
-        boolean matches(String socketName, int localPort) {
-            return this.localPort == localPort && this.socketName.equals(socketName);
-        }
-
-        boolean isRunning() {
-            return running;
-        }
-
-        void start() throws Exception {
-            serverSocket = new ServerSocket(localPort, 50);
-            serverSocket.setReuseAddress(true);
-            clientPool = Executors.newCachedThreadPool();
-            running = true;
-            acceptThread = new Thread(this::acceptLoop, "edge-cdp-bridge-accept");
-            acceptThread.start();
-        }
-
-        void close() {
-            running = false;
-            try {
-                if (serverSocket != null) serverSocket.close();
-            } catch (Exception ignored) {}
-            if (clientPool != null) clientPool.shutdownNow();
-        }
-
-        private void acceptLoop() {
-            while (running) {
-                try {
-                    Socket client = serverSocket.accept();
-                    clientPool.execute(() -> handleClient(client));
-                } catch (Exception e) {
-                    if (!running) return;
-                }
-            }
-        }
-
-        private void handleClient(Socket client) {
-            LocalSocket local = new LocalSocket();
-            try (Socket tcp = client) {
-                tcp.setKeepAlive(true);
-                tcp.setTcpNoDelay(true);
-                local.connect(new LocalSocketAddress(socketName, LocalSocketAddress.Namespace.ABSTRACT));
-
-                InputStream tcpIn = tcp.getInputStream();
-                OutputStream tcpOut = tcp.getOutputStream();
-                InputStream localIn = local.getInputStream();
-                OutputStream localOut = local.getOutputStream();
-
-                CountDownLatch done = new CountDownLatch(2);
-                Thread t1 = new Thread(() -> pipeTcpToLocal(tcp, tcpIn, local, localOut, done), "edge-cdp-tcp-to-local");
-                Thread t2 = new Thread(() -> pipeLocalToTcp(local, localIn, tcp, tcpOut, done), "edge-cdp-local-to-tcp");
-                t1.start();
-                t2.start();
-                done.await();
-            } catch (Exception ignored) {
-            } finally {
-                try { local.close(); } catch (Exception ignored) {}
-            }
-        }
-
-        private void pipeTcpToLocal(Socket tcp, InputStream in, LocalSocket local, OutputStream out, CountDownLatch done) {
-            pipe(in, out);
-            try { local.shutdownOutput(); } catch (Exception ignored) {}
-            try { tcp.shutdownInput(); } catch (Exception ignored) {}
-            done.countDown();
-        }
-
-        private void pipeLocalToTcp(LocalSocket local, InputStream in, Socket tcp, OutputStream out, CountDownLatch done) {
-            pipe(in, out);
-            try { tcp.shutdownOutput(); } catch (Exception ignored) {}
-            try { local.shutdownInput(); } catch (Exception ignored) {}
-            done.countDown();
-        }
-
-        private void pipe(InputStream in, OutputStream out) {
-            byte[] buffer = new byte[8192];
-            try {
-                while (true) {
-                    int n = in.read(buffer);
-                    if (n < 0) break;
-                    if (n == 0) continue;
-                    out.write(buffer, 0, n);
-                    out.flush();
-                }
-            } catch (SocketException ignored) {
-            } catch (Exception ignored) {
-            }
         }
     }
 }

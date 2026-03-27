@@ -99,16 +99,6 @@ public class RootCommandServer {
                 return;
             }
 
-            if ("GET".equals(method) && "/edge/version".equals(path)) {
-                writeJson(out, 200, edgeCdpBridgeManager.fetchVersion());
-                return;
-            }
-
-            if ("GET".equals(method) && "/edge/list".equals(path)) {
-                writeJson(out, 200, edgeCdpBridgeManager.fetchList());
-                return;
-            }
-
             if ("POST".equals(method) && "/edge/open".equals(path)) {
                 if (!RootHelperConfig.TOKEN.equals(token)) {
                     writeJson(out, 403, error("forbidden"));
