@@ -1,22 +1,18 @@
 # RootHelperStandaloneApp
 
-这是一个**独立安卓工程**，不依赖 BotDrop 工程，也不再依赖 BotDrop 的 Node 路径或工作区脚本。
+这是一个openclaw在安卓受限环境下桥接root和CDP工具
 
 ## 现在的实现
 - 独立 App
 - 独立前台服务 `RootHelperService`
 - App 内嵌本地 HTTP 服务 `RootCommandServer`
-- 监听：`127.0.0.1:18765`
+- 监听：root`127.0.0.1:18765`CDP´127.0.0.1:1922`
 - 接口：
   - `GET /ping`
   - `POST /exec`
 - 通过 **libsu** 直接以 root 执行命令
 - 可切换开机自启（BOOT_COMPLETED）
 
-## 关键点
-这个版本**已经去掉了对 BotDrop 路径的依赖**：
-- 不再依赖 `/data/data/app.botdrop/files/usr/bin/node`
-- 不再依赖 `/data/data/app.botdrop/files/home/.openclaw/workspace/scripts/roothelper_server.js`
 
 ## 配置
 文件：`app/src/main/java/com/dadatu/roothelper/RootHelperConfig.java`
