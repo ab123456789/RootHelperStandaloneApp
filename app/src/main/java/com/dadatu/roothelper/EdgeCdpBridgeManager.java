@@ -105,7 +105,7 @@ public class EdgeCdpBridgeManager {
             return stripAbstractPrefix(exact);
         }
 
-        String fallback = execRoot("cat /proc/net/unix | grep -o '@webview_devtools_remote_[0-9]\+' | head -n 1 || true").trim();
+        String fallback = execRoot("cat /proc/net/unix | grep -o '@webview_devtools_remote_[0-9]\\+' | head -n 1 || true").trim();
         if (!fallback.isEmpty()) {
             return stripAbstractPrefix(fallback);
         }
