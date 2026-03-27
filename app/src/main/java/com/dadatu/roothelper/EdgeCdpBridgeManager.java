@@ -7,14 +7,21 @@ import com.topjohnwu.superuser.Shell;
 
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class EdgeCdpBridgeManager {
 
     private static final String DEFAULT_PACKAGE = "com.microsoft.emmx";
     private static final int DEFAULT_PORT = 19222;
+    private static final String BRIDGE_LOG = "/data/local/tmp/root-edge-bridge.log";
+    private static final String BRIDGE_STDOUT_LOG = "/data/local/tmp/root-edge-bridge.stdout.log";
 
     private final Context appContext;
     private final Object lock = new Object();
@@ -27,12 +34,12 @@ public class EdgeCdpBridgeManager {
     public JSONObject openEdgeBridge() throws Exception {
         synchronized (lock) {
             EdgeInfo info = resolveEdgeInfo();
-            boolean reused = info.socketName.equals(forwardedSocketName) && isLocalPortOpen(DEFAULT_PORT);
+            boolean reused = info.socketName.equals(forwardedSocketName) && isBridgeHealthy(DEFAULT_PORT, DEFAULT_PACKAGE);
             if (!reused) {
                 startRootBridge(DEFAULT_PORT, info.socketName);
                 forwardedSocketName = info.socketName;
             }
-            return bridgeInfo(reused, DEFAULT_PACKAGE, info.pid, info.socketName, DEFAULT_PORT);
+            return bridgeInfo(reused, DEFAULT_PACKAGE, info.pid, info.socketName, DEFAULT_PORT, true);
         }
     }
 
@@ -41,18 +48,23 @@ public class EdgeCdpBridgeManager {
             JSONObject obj = new JSONObject();
             obj.put("ok", true);
             obj.put("package", DEFAULT_PACKAGE);
-            obj.put("running", forwardedSocketName != null && isLocalPortOpen(DEFAULT_PORT));
+            boolean running = forwardedSocketName != null && isBridgeHealthy(DEFAULT_PORT, DEFAULT_PACKAGE);
+            obj.put("running", running);
             if (forwardedSocketName != null) {
                 obj.put("socketName", forwardedSocketName);
                 obj.put("localPort", DEFAULT_PORT);
                 obj.put("versionUrl", "http://127.0.0.1:" + DEFAULT_PORT + "/json/version");
                 obj.put("listUrl", "http://127.0.0.1:" + DEFAULT_PORT + "/json/list");
             }
+            String logTail = tailLog(BRIDGE_STDOUT_LOG);
+            if (!logTail.isEmpty()) {
+                obj.put("bridgeLogTail", logTail);
+            }
             return obj;
         }
     }
 
-    private JSONObject bridgeInfo(boolean reused, String pkg, String pid, String socketName, int port) throws Exception {
+    private JSONObject bridgeInfo(boolean reused, String pkg, String pid, String socketName, int port, boolean running) throws Exception {
         JSONObject obj = new JSONObject();
         obj.put("ok", true);
         obj.put("package", pkg);
@@ -60,8 +72,13 @@ public class EdgeCdpBridgeManager {
         obj.put("socketName", socketName);
         obj.put("localPort", port);
         obj.put("reused", reused);
+        obj.put("running", running);
         obj.put("versionUrl", "http://127.0.0.1:" + port + "/json/version");
         obj.put("listUrl", "http://127.0.0.1:" + port + "/json/list");
+        String logTail = tailLog(BRIDGE_STDOUT_LOG);
+        if (!logTail.isEmpty()) {
+            obj.put("bridgeLogTail", logTail);
+        }
         return obj;
     }
 
@@ -89,25 +106,51 @@ public class EdgeCdpBridgeManager {
         }
     }
 
+    private boolean isBridgeHealthy(int port, String expectedPackage) {
+        if (!isLocalPortOpen(port)) return false;
+        try {
+            String body = httpGet("http://127.0.0.1:" + port + "/json/version", 1500, 2500);
+            return body.contains(expectedPackage) || body.contains("EdgA/") || body.contains("webSocketDebuggerUrl");
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private void startRootBridge(int localPort, String socketName) throws Exception {
         ApplicationInfo ai = appContext.getApplicationInfo();
         String apkPath = ai.sourceDir;
 
-        execRoot("rm -f /data/local/tmp/root-probe.log /data/local/tmp/root-edge-bridge.log");
+        execRoot("pkill -f com.dadatu.roothelper.RootEdgeBridgeMain 2>/dev/null || true");
+        execRoot("rm -f " + shellQuote(BRIDGE_LOG) + " " + shellQuote(BRIDGE_STDOUT_LOG));
 
-        String probeCmd = "CLASSPATH=" + shellQuote(apkPath)
-            + " app_process /system/bin com.dadatu.roothelper.RootProbeMain "
+        String bridgeCmd = "export CLASSPATH=" + shellQuote(apkPath)
+            + "; nohup app_process /system/bin com.dadatu.roothelper.RootEdgeBridgeMain "
             + localPort + " " + shellQuote(socketName)
-            + " > /data/local/tmp/root-probe-stdout.log 2>&1";
-        execRoot(probeCmd);
+            + " > " + shellQuote(BRIDGE_STDOUT_LOG)
+            + " 2>&1 < /dev/null & echo started > " + shellQuote(BRIDGE_LOG);
+        execRoot(bridgeCmd);
 
-        String probeLog = execRoot("cat /data/local/tmp/root-probe.log 2>/dev/null || true").trim();
-        if (probeLog.isEmpty()) {
-            String stdout = execRoot("cat /data/local/tmp/root-probe-stdout.log 2>/dev/null || true");
-            throw new IllegalStateException("root probe did not write log. stdout=" + stdout);
+        Exception lastError = null;
+        for (int i = 0; i < 20; i++) {
+            Thread.sleep(300);
+            if (isBridgeHealthy(localPort, DEFAULT_PACKAGE)) {
+                return;
+            }
+            try {
+                String body = httpGet("http://127.0.0.1:" + localPort + "/json/version", 800, 1200);
+                if (body.contains(DEFAULT_PACKAGE) || body.contains("EdgA/") || body.contains("webSocketDebuggerUrl")) {
+                    return;
+                }
+            } catch (Exception e) {
+                lastError = e;
+            }
         }
 
-        throw new IllegalStateException("root probe ok; bridge not re-enabled yet");
+        String stdout = tailLog(BRIDGE_STDOUT_LOG);
+        String marker = execRoot("cat " + shellQuote(BRIDGE_LOG) + " 2>/dev/null || true").trim();
+        throw new IllegalStateException(
+            "edge bridge failed to come up; marker=" + marker + "; log=" + stdout + (lastError == null ? "" : "; lastError=" + lastError.getMessage())
+        );
     }
 
     private void ensureEdgeRunning(String pkg) throws Exception {
@@ -160,6 +203,34 @@ public class EdgeCdpBridgeManager {
             throw new IllegalStateException((stderr == null || stderr.isEmpty()) ? ("command failed: " + shellCommand) : stderr.trim());
         }
         return stdout == null ? "" : stdout;
+    }
+
+    private String httpGet(String url, int connectTimeoutMs, int readTimeoutMs) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setConnectTimeout(connectTimeoutMs);
+        conn.setReadTimeout(readTimeoutMs);
+        conn.setRequestMethod("GET");
+        int code = conn.getResponseCode();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(
+            code >= 200 && code < 400 ? conn.getInputStream() : conn.getErrorStream(),
+            StandardCharsets.UTF_8
+        ));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append('\n');
+        }
+        reader.close();
+        return sb.toString();
+    }
+
+    private String tailLog(String path) {
+        try {
+            String out = execRoot("tail -n 40 " + shellQuote(path) + " 2>/dev/null || true");
+            return out == null ? "" : out.trim();
+        } catch (Exception ignored) {
+            return "";
+        }
     }
 
     private String join(List<String> lines) {
