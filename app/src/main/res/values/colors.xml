@@ -1,0 +1,15 @@
+<resources>
+    <color name="rabbit_bg">#FFF8FC</color>
+    <color name="rabbit_surface">#FFFFFFFF</color>
+    <color name="rabbit_surface_soft">#FFF4ECFF</color>
+    <color name="rabbit_primary">#FF8B5CF6</color>
+    <color name="rabbit_primary_dark">#FF6D28D9</color>
+    <color name="rabbit_primary_soft">#FFEDE9FE</color>
+    <color name="rabbit_accent">#FFFF8FB1</color>
+    <color name="rabbit_text">#FF2C1F3A</color>
+    <color name="rabbit_text_muted">#FF7B6F8A</color>
+    <color name="rabbit_success">#FF22C55E</color>
+    <color name="rabbit_log_bg">#FF1F1630</color>
+    <color name="rabbit_log_border">#FF43315E</color>
+    <color name="rabbit_log_text">#FFF5EFFF</color>
+</resources>

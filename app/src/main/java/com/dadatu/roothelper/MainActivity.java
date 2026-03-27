@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnStop.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
             stopService(new Intent(this, RootHelperService.class));
-            return "Service stop requested";
+            return "桥接模式停止请求已发送";
         }));
 
         btnPing.setOnClickListener(v -> runTask(getString(R.string.status_working),

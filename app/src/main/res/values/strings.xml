@@ -1,16 +1,17 @@
 <resources>
     <string name="app_name">RootHelper</string>
-    <string name="status_ready">Ready</string>
-    <string name="status_working">Working…</string>
-    <string name="title_roothelper">RootHelper Standalone</string>
-    <string name="desc_roothelper">独立版 roothelper app。可启动/停止系统侧本地 HTTP roothelper，并测试 ping / id。</string>
-    <string name="btn_start_service">启动 RootHelper</string>
-    <string name="btn_stop_service">停止 RootHelper</string>
-    <string name="btn_ping">Ping</string>
-    <string name="btn_run_id">执行 id</string>
+    <string name="status_ready">桥接待命</string>
+    <string name="status_working">桥接处理中…</string>
+    <string name="title_roothelper">RootHelper</string>
+    <string name="desc_roothelper">本软件主要做为 root 桥接、CDP 桥接，提供更轻量、更稳定的本地桥接能力。</string>
+    <string name="btn_start_service">启动桥接模式</string>
+    <string name="btn_stop_service">停止桥接模式</string>
+    <string name="btn_ping">检测桥接状态</string>
+    <string name="btn_run_id">授予 Root 权限</string>
     <string name="btn_toggle_boot">切换开机自启</string>
-    <string name="btn_open_edge_cdp">打开 Edge CDP 桥接</string>
-    <string name="label_output">输出</string>
+    <string name="btn_open_edge_cdp">Edge CDP 连接</string>
+    <string name="label_output">桥接日志</string>
+    <string name="label_output_desc">这里会显示桥接结果、状态反馈和调试日志。</string>
     <string name="notif_channel_name">RootHelper Service</string>
     <string name="notif_channel_desc">Keeps the local roothelper service alive.</string>
     <string name="notif_text">RootHelper 正在运行</string>

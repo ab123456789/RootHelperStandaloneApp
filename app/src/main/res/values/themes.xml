@@ -1,10 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.RootHelperStandalone" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#6750A4</item>
-        <item name="colorPrimaryVariant">#4F378B</item>
+        <item name="colorPrimary">@color/rabbit_primary</item>
+        <item name="colorPrimaryVariant">@color/rabbit_primary_dark</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorSecondary">#625B71</item>
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <item name="android:navigationBarColor">#000000</item>
+        <item name="colorSecondary">@color/rabbit_accent</item>
+        <item name="android:statusBarColor">@color/rabbit_bg</item>
+        <item name="android:navigationBarColor">@color/rabbit_bg</item>
+        <item name="android:windowBackground">@color/rabbit_bg</item>
     </style>
 </resources>
