@@ -120,11 +120,13 @@ public class RootCommandServer {
                 }
 
                 String shellCommand = buildShellCommand(argv);
-                Shell.Result result = Shell.cmd("sh", "-c", shellCommand).exec();
+                String execCommand = buildSuExecCommand(shellCommand);
+                Shell.Result result = Shell.cmd(execCommand).exec();
                 JSONObject obj = new JSONObject();
                 obj.put("ok", true);
                 obj.put("argv", new JSONArray(argv));
                 obj.put("shellCommand", shellCommand);
+                obj.put("execCommand", execCommand);
                 obj.put("returncode", result.getCode());
                 obj.put("stdout", join(result.getOut()));
                 obj.put("stderr", join(result.getErr()));
@@ -158,6 +160,10 @@ public class RootCommandServer {
             sb.append(shellQuote(argv.get(i)));
         }
         return sb.toString();
+    }
+
+    private String buildSuExecCommand(String shellCommand) {
+        return "su -M -c " + shellQuote(shellCommand);
     }
 
     private String shellQuote(String s) {
