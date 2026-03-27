@@ -21,6 +21,8 @@ import java.util.concurrent.Executors;
 
 public class RootCommandServer {
 
+    private static final String DEBUG_LOG = "/data/user/0/com.dadatu.roothelper/files/roothelper-server.log";
+
     private final EdgeCdpBridgeManager edgeCdpBridgeManager;
     private volatile boolean running;
     private ServerSocket serverSocket;
@@ -69,7 +71,9 @@ public class RootCommandServer {
             BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
             String requestLine = reader.readLine();
+            log("requestLine=" + requestLine);
             if (requestLine == null || requestLine.isEmpty()) {
+                log("bad_request empty request line");
                 writeJson(out, 400, error("bad_request"));
                 return;
             }
@@ -88,6 +92,7 @@ public class RootCommandServer {
                     token = line.substring(line.indexOf(':') + 1).trim();
                 }
             }
+            log("method=" + method + " path=" + path + " contentLength=" + contentLength + " tokenMatch=" + RootHelperConfig.TOKEN.equals(token));
 
             if ("GET".equals(method) && "/ping".equals(path)) {
                 JSONObject obj = new JSONObject();
@@ -95,34 +100,46 @@ public class RootCommandServer {
                 obj.put("service", "roothelper");
                 obj.put("mode", "standalone-app");
                 writeJson(out, 200, obj);
+                log("ping ok");
                 return;
             }
 
             if ("GET".equals(method) && "/edge/status".equals(path)) {
+                log("edge status start");
                 writeJson(out, 200, edgeCdpBridgeManager.getStatus());
+                log("edge status ok");
                 return;
             }
 
             if ("POST".equals(method) && "/edge/open".equals(path)) {
+                log("edge open start");
                 if (!RootHelperConfig.TOKEN.equals(token)) {
+                    log("edge open forbidden");
                     writeJson(out, 403, error("forbidden"));
                     return;
                 }
-                readRequestBody(reader, contentLength);
-                writeJson(out, 200, edgeCdpBridgeManager.openEdgeBridge());
+                String edgeBody = readRequestBody(reader, contentLength);
+                log("edge open body=" + edgeBody);
+                JSONObject result = edgeCdpBridgeManager.openEdgeBridge();
+                log("edge open result=" + result.toString());
+                writeJson(out, 200, result);
+                log("edge open response sent");
                 return;
             }
 
             if ("POST".equals(method) && "/exec".equals(path)) {
                 if (!RootHelperConfig.TOKEN.equals(token)) {
+                    log("exec forbidden");
                     writeJson(out, 403, error("forbidden"));
                     return;
                 }
 
                 String body = readRequestBody(reader, contentLength);
+                log("exec body=" + body);
                 JSONObject req = new JSONObject(body.isEmpty() ? "{}" : body);
                 JSONArray argvJson = req.optJSONArray("argv");
                 if (argvJson == null || argvJson.length() == 0) {
+                    log("exec invalid argv");
                     writeJson(out, 400, error("argv must be non-empty string list"));
                     return;
                 }
@@ -134,6 +151,7 @@ public class RootCommandServer {
 
                 String shellCommand = buildShellCommand(argv);
                 String execCommand = buildSuExecCommand(shellCommand);
+                log("exec command=" + execCommand);
                 Shell.Result result = Shell.cmd(execCommand).exec();
                 JSONObject obj = new JSONObject();
                 obj.put("ok", true);
@@ -144,18 +162,25 @@ public class RootCommandServer {
                 obj.put("stdout", join(result.getOut()));
                 obj.put("stderr", join(result.getErr()));
                 writeJson(out, 200, obj);
+                log("exec response sent rc=" + result.getCode());
                 return;
             }
 
+            log("not found path=" + path);
             writeJson(out, 404, error("not_found"));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            log("handle exception=" + android.util.Log.getStackTraceString(e));
             try {
                 OutputStream out = socket.getOutputStream();
                 JSONObject obj = new JSONObject();
                 obj.put("ok", false);
                 obj.put("error", String.valueOf(e.getMessage()));
+                obj.put("errorType", e.getClass().getName());
                 writeJson(out, 500, obj);
-            } catch (Exception ignored) {}
+                log("error response sent");
+            } catch (Exception inner) {
+                log("failed to send error response=" + android.util.Log.getStackTraceString(inner));
+            }
         }
     }
 
@@ -202,6 +227,16 @@ public class RootCommandServer {
             read += n;
         }
         return new String(bodyChars, 0, read);
+    }
+
+    private void log(String msg) {
+        try (FileOutputStream fos = new FileOutputStream(DEBUG_LOG, true)) {
+            String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+            String line = ts + " " + msg + "\n";
+            fos.write(line.getBytes(StandardCharsets.UTF_8));
+            fos.flush();
+        } catch (Exception ignored) {
+        }
     }
 
     private void writeJson(OutputStream out, int code, JSONObject obj) throws Exception {
