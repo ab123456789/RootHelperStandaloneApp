@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnPing;
     private Button btnId;
     private Button btnBoot;
+    private Button btnEdge;
 
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
         registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {});
@@ -45,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         btnPing = findViewById(R.id.btnPing);
         btnId = findViewById(R.id.btnId);
         btnBoot = findViewById(R.id.btnBoot);
+        btnEdge = findViewById(R.id.btnEdge);
 
         btnStart.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
             startHelperService();
@@ -68,6 +70,14 @@ public class MainActivity extends AppCompatActivity {
             )));
 
         btnBoot.setOnClickListener(v -> toggleBoot());
+
+        btnEdge.setOnClickListener(v -> runTask(getString(R.string.status_working),
+            () -> HttpUtils.postJson(
+                RootHelperConfig.HOST + "/edge/open",
+                RootHelperConfig.TOKEN,
+                "{}"
+            )));
+
         updateBootButton();
         ensureNotificationPermission();
     }
@@ -107,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         btnPing.setEnabled(!busy);
         btnId.setEnabled(!busy);
         btnBoot.setEnabled(!busy);
+        btnEdge.setEnabled(!busy);
     }
 
     private void startHelperService() {

@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 
 public class RootCommandServer {
 
+    private final EdgeCdpBridgeManager edgeCdpBridgeManager = new EdgeCdpBridgeManager();
     private volatile boolean running;
     private ServerSocket serverSocket;
     private ExecutorService clientPool;
@@ -90,6 +91,20 @@ public class RootCommandServer {
                 obj.put("service", "roothelper");
                 obj.put("mode", "standalone-app");
                 writeJson(out, 200, obj);
+                return;
+            }
+
+            if ("GET".equals(method) && "/edge/status".equals(path)) {
+                writeJson(out, 200, edgeCdpBridgeManager.getStatus());
+                return;
+            }
+
+            if ("POST".equals(method) && "/edge/open".equals(path)) {
+                if (!RootHelperConfig.TOKEN.equals(token)) {
+                    writeJson(out, 403, error("forbidden"));
+                    return;
+                }
+                writeJson(out, 200, edgeCdpBridgeManager.openEdgeBridge());
                 return;
             }
 

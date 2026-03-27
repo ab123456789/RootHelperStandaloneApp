@@ -9,6 +9,7 @@
     <string name="btn_ping">Ping</string>
     <string name="btn_run_id">执行 id</string>
     <string name="btn_toggle_boot">切换开机自启</string>
+    <string name="btn_open_edge_cdp">打开 Edge CDP 桥接</string>
     <string name="label_output">输出</string>
     <string name="notif_channel_name">RootHelper Service</string>
     <string name="notif_channel_desc">Keeps the local roothelper service alive.</string>
