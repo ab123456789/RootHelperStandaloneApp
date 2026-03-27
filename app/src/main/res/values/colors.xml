@@ -1,16 +1,20 @@
 <resources>
-    <color name="rabbit_bg">#FFFDFBFF</color>
+    <color name="rabbit_bg">#FFF7F7FB</color>
     <color name="rabbit_surface">#FFFFFFFF</color>
-    <color name="rabbit_surface_soft">#FFF8F0FF</color>
-    <color name="rabbit_primary">#FF9B6DFF</color>
-    <color name="rabbit_primary_dark">#FF7C4DDB</color>
-    <color name="rabbit_primary_soft">#FFF1E8FF</color>
-    <color name="rabbit_accent">#FFFFA6C9</color>
-    <color name="rabbit_accent_soft">#FFFFEDF5</color>
-    <color name="rabbit_text">#FF2B2138</color>
-    <color name="rabbit_text_muted">#FF857690</color>
-    <color name="rabbit_success">#FF22C55E</color>
-    <color name="rabbit_log_bg">#FF20172E</color>
-    <color name="rabbit_log_border">#FF584176</color>
-    <color name="rabbit_log_text">#FFF8F3FF</color>
+    <color name="rabbit_surface_soft">#FFF3F1FA</color>
+    <color name="rabbit_surface_tint">#FFEEE9F8</color>
+    <color name="rabbit_primary">#FF6F5CFF</color>
+    <color name="rabbit_primary_dark">#FF5742D6</color>
+    <color name="rabbit_primary_soft">#FFE8E2FF</color>
+    <color name="rabbit_accent">#FFFFC7DA</color>
+    <color name="rabbit_gold">#FFC8A96B</color>
+    <color name="rabbit_text">#FF201A2D</color>
+    <color name="rabbit_text_muted">#FF7C748D</color>
+    <color name="rabbit_text_soft">#FF9B93AB</color>
+    <color name="rabbit_success">#FF19B36B</color>
+    <color name="rabbit_success_soft">#FFEAF9F1</color>
+    <color name="rabbit_danger">#FFCC5573</color>
+    <color name="rabbit_log_bg">#FF171321</color>
+    <color name="rabbit_log_border">#FF302845</color>
+    <color name="rabbit_log_text">#FFF5F2FF</color>
 </resources>

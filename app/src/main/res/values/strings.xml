@@ -1,18 +1,18 @@
 <resources>
     <string name="app_name">cm</string>
-    <string name="status_ready">桥接待命</string>
+    <string name="status_ready">Root 桥接正常</string>
     <string name="status_working">桥接处理中…</string>
-    <string name="title_roothelper">RootHelper</string>
-    <string name="desc_roothelper">本软件主要做为 root 桥接、CDP 桥接，提供更轻量、更稳定的本地桥接能力。</string>
+    <string name="title_roothelper">cm</string>
+    <string name="desc_roothelper">轻盈、稳定的 Root / CDP 桥接面板，把复杂能力藏在后面，把体验留在前面。</string>
     <string name="btn_start_service">启动桥接模式</string>
     <string name="btn_stop_service">停止桥接模式</string>
     <string name="btn_ping">检测桥接状态</string>
     <string name="btn_run_id">授予 Root 权限</string>
     <string name="btn_toggle_boot">切换开机自启</string>
     <string name="btn_open_edge_cdp">Edge CDP 连接</string>
-    <string name="label_output">桥接日志</string>
-    <string name="label_output_desc">这里会显示桥接结果、状态反馈和调试日志。</string>
-    <string name="notif_channel_name">RootHelper Service</string>
-    <string name="notif_channel_desc">Keeps the local roothelper service alive.</string>
-    <string name="notif_text">RootHelper 正在运行</string>
+    <string name="label_output">运行面板</string>
+    <string name="label_output_desc">桥接状态、连接反馈与调试信息会在这里汇总显示。</string>
+    <string name="notif_channel_name">cm service</string>
+    <string name="notif_channel_desc">Keeps the local bridge service alive.</string>
+    <string name="notif_text">cm 正在运行</string>
 </resources>

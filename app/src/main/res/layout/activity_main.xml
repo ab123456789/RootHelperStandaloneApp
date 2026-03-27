@@ -10,26 +10,28 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="18dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_rabbit_panel"
+            android:elevation="4dp"
             android:orientation="vertical"
-            android:background="@drawable/bg_rabbit_panel">
+            android:padding="22dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🐰 cm"
+                android:text="cm"
                 android:textColor="@color/rabbit_text"
-                android:textSize="28sp"
+                android:textSize="30sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:text="@string/desc_roothelper"
                 android:textColor="@color/rabbit_text_muted"
                 android:textSize="14sp" />
@@ -38,109 +40,119 @@
                 android:id="@+id/textStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="16dp"
                 android:background="@drawable/bg_rabbit_status"
                 android:paddingLeft="14dp"
                 android:paddingTop="8dp"
                 android:paddingRight="14dp"
                 android:paddingBottom="8dp"
                 android:text="@string/status_ready"
-                android:textColor="@color/rabbit_primary_dark"
+                android:textColor="@color/rabbit_success"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_rabbit_panel"
+            android:elevation="4dp"
             android:orientation="vertical"
-            android:background="@drawable/bg_rabbit_panel">
+            android:padding="18dp">
 
             <Button
                 android:id="@+id/btnStart"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:background="@drawable/bg_rabbit_button"
-                android:elevation="2dp"
+                android:layout_height="58dp"
+                android:background="@drawable/bg_rabbit_button_primary"
+                android:elevation="3dp"
                 android:text="@string/btn_start_service"
                 android:textAllCaps="false"
-                android:textColor="@color/rabbit_primary_dark"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnStop"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_rabbit_button"
-                android:elevation="2dp"
-                android:text="@string/btn_stop_service"
-                android:textAllCaps="false"
-                android:textColor="@color/rabbit_primary_dark"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnPing"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_rabbit_button"
-                android:elevation="2dp"
-                android:text="@string/btn_ping"
-                android:textAllCaps="false"
-                android:textColor="@color/rabbit_primary_dark"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnId"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_rabbit_button"
-                android:elevation="2dp"
-                android:text="@string/btn_run_id"
-                android:textAllCaps="false"
-                android:textColor="@color/rabbit_primary_dark"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnBoot"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_rabbit_button"
-                android:elevation="2dp"
-                android:text="@string/btn_toggle_boot"
-                android:textAllCaps="false"
-                android:textColor="@color/rabbit_primary_dark"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btnEdge"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="58dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_rabbit_button"
                 android:elevation="2dp"
                 android:text="@string/btn_open_edge_cdp"
                 android:textAllCaps="false"
-                android:textColor="@color/rabbit_primary_dark"
+                android:textColor="@color/rabbit_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnId"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
+                android:text="@string/btn_run_id"
+                android:textAllCaps="false"
+                android:textColor="@color/rabbit_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnPing"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
+                android:text="@string/btn_ping"
+                android:textAllCaps="false"
+                android:textColor="@color/rabbit_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnBoot"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
+                android:text="@string/btn_toggle_boot"
+                android:textAllCaps="false"
+                android:textColor="@color/rabbit_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnStop"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_rabbit_button"
+                android:elevation="2dp"
+                android:text="@string/btn_stop_service"
+                android:textAllCaps="false"
+                android:textColor="@color/rabbit_danger"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_rabbit_panel"
+            android:elevation="4dp"
             android:orientation="vertical"
-            android:background="@drawable/bg_rabbit_panel">
+            android:padding="18dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/label_output"
                 android:textColor="@color/rabbit_text"
-                android:textSize="16sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -148,19 +160,20 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="@string/label_output_desc"
-                android:textColor="@color/rabbit_text_muted"
+                android:textColor="@color/rabbit_text_soft"
                 android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/textOutput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="260dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_rabbit_log"
                 android:fontFamily="monospace"
-                android:lineSpacingExtra="2dp"
-                android:padding="14dp"
+                android:gravity="top|start"
+                android:lineSpacingExtra="3dp"
+                android:minHeight="280dp"
+                android:padding="16dp"
                 android:textColor="@color/rabbit_log_text"
                 android:textIsSelectable="true"
                 android:textSize="13sp" />

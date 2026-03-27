@@ -51,19 +51,19 @@ public class MainActivity extends AppCompatActivity {
         btnStart.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
             startHelperService();
             Thread.sleep(1200);
-            return HttpUtils.get(RootHelperConfig.HOST + "/ping");
+            return "Root 桥接正常\n\n" + HttpUtils.get(RootHelperConfig.HOST + "/ping");
         }));
 
         btnStop.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
             stopService(new Intent(this, RootHelperService.class));
-            return "桥接模式停止请求已发送";
+            return "桥接模式已断开";
         }));
 
         btnPing.setOnClickListener(v -> runTask(getString(R.string.status_working),
             () -> HttpUtils.get(RootHelperConfig.HOST + "/ping")));
 
         btnId.setOnClickListener(v -> runTask(getString(R.string.status_working),
-            () -> HttpUtils.postJson(
+            () -> "Root 权限正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/exec",
                 RootHelperConfig.TOKEN,
                 "{\"argv\":[\"id\"]}"
@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         btnBoot.setOnClickListener(v -> toggleBoot());
 
         btnEdge.setOnClickListener(v -> runTask(getString(R.string.status_working),
-            () -> HttpUtils.postJson(
+            () -> "CDP 连接正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/edge/open",
                 RootHelperConfig.TOKEN,
                 "{}"
@@ -155,7 +155,8 @@ public class MainActivity extends AppCompatActivity {
             PackageManager.DONT_KILL_APP
         );
         updateBootButton();
-        textOutput.setText(!enabled ? "Boot start enabled" : "Boot start disabled");
+        textOutput.setText(!enabled ? "开机自启已开启" : "开机自启已关闭");
+        textStatus.setText(R.string.status_ready);
     }
 
     private void updateBootButton() {
