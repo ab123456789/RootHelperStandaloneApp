@@ -122,8 +122,8 @@ public class EdgeCdpBridgeManager {
         ApplicationInfo ai = appContext.getApplicationInfo();
         String apkPath = ai.sourceDir;
 
-        execRoot("pkill -f com.dadatu.roothelper.RootEdgeBridgeMain 2>/dev/null || true");
-        execRoot("rm -f " + shellQuote(BRIDGE_LOG) + " " + shellQuote(BRIDGE_STDOUT_LOG));
+        execRootAllowFailure("pkill -f com.dadatu.roothelper.RootEdgeBridgeMain 2>/dev/null || true");
+        execRootAllowFailure("rm -f " + shellQuote(BRIDGE_LOG) + " " + shellQuote(BRIDGE_STDOUT_LOG));
 
         String bridgeCmd = "export CLASSPATH=" + shellQuote(apkPath)
             + "; nohup app_process /system/bin com.dadatu.roothelper.RootEdgeBridgeMain "
