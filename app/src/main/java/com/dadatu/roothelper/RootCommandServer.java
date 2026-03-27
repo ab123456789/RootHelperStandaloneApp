@@ -108,6 +108,7 @@ public class RootCommandServer {
                     writeJson(out, 403, error("forbidden"));
                     return;
                 }
+                readRequestBody(reader, contentLength);
                 writeJson(out, 200, edgeCdpBridgeManager.openEdgeBridge());
                 return;
             }
@@ -118,14 +119,7 @@ public class RootCommandServer {
                     return;
                 }
 
-                char[] bodyChars = new char[Math.max(contentLength, 0)];
-                int read = 0;
-                while (read < bodyChars.length) {
-                    int n = reader.read(bodyChars, read, bodyChars.length - read);
-                    if (n < 0) break;
-                    read += n;
-                }
-                String body = new String(bodyChars, 0, read);
+                String body = readRequestBody(reader, contentLength);
                 JSONObject req = new JSONObject(body.isEmpty() ? "{}" : body);
                 JSONArray argvJson = req.optJSONArray("argv");
                 if (argvJson == null || argvJson.length() == 0) {
@@ -197,6 +191,17 @@ public class RootCommandServer {
             sb.append(line).append('\n');
         }
         return sb.toString();
+    }
+
+    private String readRequestBody(BufferedReader reader, int contentLength) throws Exception {
+        char[] bodyChars = new char[Math.max(contentLength, 0)];
+        int read = 0;
+        while (read < bodyChars.length) {
+            int n = reader.read(bodyChars, read, bodyChars.length - read);
+            if (n < 0) break;
+            read += n;
+        }
+        return new String(bodyChars, 0, read);
     }
 
     private void writeJson(OutputStream out, int code, JSONObject obj) throws Exception {
