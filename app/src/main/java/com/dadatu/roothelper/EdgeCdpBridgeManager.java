@@ -85,14 +85,15 @@ public class EdgeCdpBridgeManager {
 
     private EdgeInfo resolveEdgeInfo() throws Exception {
         synchronized (lock) {
-            ensureEdgeRunning(DEFAULT_PACKAGE);
+            ensureEdgeDebugSocketReady(DEFAULT_PACKAGE);
             String pid = findPackagePid(DEFAULT_PACKAGE);
             if (pid == null || pid.isEmpty()) {
                 throw new IllegalStateException("edge pid not found");
             }
             String socketName = findDevtoolsSocket(pid);
             if (socketName == null || socketName.isEmpty()) {
-                throw new IllegalStateException("edge devtools socket not found");
+                String scan = dumpDevtoolsScan(pid);
+                throw new IllegalStateException("edge devtools socket not found; pid=" + pid + "; scan=" + scan);
             }
             return new EdgeInfo(pid, socketName);
         }
@@ -171,6 +172,33 @@ public class EdgeCdpBridgeManager {
         String out = execRoot("pidof " + shellQuote(pkg) + " || true").trim();
         if (out.isEmpty()) return null;
         return out.split("\\s+")[0].trim();
+    }
+
+    private void ensureEdgeDebugSocketReady(String pkg) throws Exception {
+        ensureEdgeRunning(pkg);
+
+        String launchUrl = "https://example.com";
+        execRootAllowFailure("am start -n " + shellQuote(pkg + "/com.microsoft.ruby.Main") + " >/dev/null 2>&1 || true");
+        execRootAllowFailure("am start -a android.intent.action.VIEW -d " + shellQuote(launchUrl) + " " + shellQuote(pkg) + " >/dev/null 2>&1 || true");
+        execRootAllowFailure("monkey -p " + shellQuote(pkg) + " -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true");
+
+        String lastScan = "";
+        for (int i = 0; i < 24; i++) {
+            Thread.sleep(500);
+            String pid = findPackagePid(pkg);
+            if (pid == null || pid.isEmpty()) {
+                continue;
+            }
+            String socketName = findDevtoolsSocket(pid);
+            if (socketName != null && !socketName.isEmpty()) {
+                return;
+            }
+            lastScan = dumpDevtoolsScan(pid);
+            if (i == 5 || i == 11 || i == 17) {
+                execRootAllowFailure("am start -a android.intent.action.VIEW -d " + shellQuote(launchUrl) + " " + shellQuote(pkg) + " >/dev/null 2>&1 || true");
+            }
+        }
+        throw new IllegalStateException("edge debug socket did not appear; scan=" + lastScan);
     }
 
     private String findDevtoolsSocket(String pid) throws Exception {
