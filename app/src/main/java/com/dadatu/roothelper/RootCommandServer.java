@@ -119,10 +119,12 @@ public class RootCommandServer {
                     argv.add(argvJson.getString(i));
                 }
 
-                Shell.Result result = Shell.cmd(argv.toArray(new String[0])).exec();
+                String shellCommand = buildShellCommand(argv);
+                Shell.Result result = Shell.cmd("sh", "-c", shellCommand).exec();
                 JSONObject obj = new JSONObject();
                 obj.put("ok", true);
                 obj.put("argv", new JSONArray(argv));
+                obj.put("shellCommand", shellCommand);
                 obj.put("returncode", result.getCode());
                 obj.put("stdout", join(result.getOut()));
                 obj.put("stderr", join(result.getErr()));
@@ -147,6 +149,20 @@ public class RootCommandServer {
         obj.put("ok", false);
         obj.put("error", msg);
         return obj;
+    }
+
+    private String buildShellCommand(List<String> argv) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < argv.size(); i++) {
+            if (i > 0) sb.append(' ');
+            sb.append(shellQuote(argv.get(i)));
+        }
+        return sb.toString();
+    }
+
+    private String shellQuote(String s) {
+        if (s == null || s.isEmpty()) return "''";
+        return "'" + s.replace("'", "'\"'\"'") + "'";
     }
 
     private String join(List<String> lines) {
