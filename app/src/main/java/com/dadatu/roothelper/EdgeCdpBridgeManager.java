@@ -22,6 +22,7 @@ public class EdgeCdpBridgeManager {
     private static final int DEFAULT_PORT = 19222;
     private static final String BRIDGE_LOG = "/data/local/tmp/root-edge-bridge.log";
     private static final String BRIDGE_STDOUT_LOG = "/data/local/tmp/root-edge-bridge.stdout.log";
+    private static final String EDGE_SCAN_LOG = "/data/local/tmp/root-edge-scan.log";
 
     private final Context appContext;
     private final Object lock = new Object();
