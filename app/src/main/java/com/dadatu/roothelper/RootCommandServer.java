@@ -21,11 +21,15 @@ import java.util.concurrent.Executors;
 
 public class RootCommandServer {
 
-    private final EdgeCdpBridgeManager edgeCdpBridgeManager = new EdgeCdpBridgeManager();
+    private final EdgeCdpBridgeManager edgeCdpBridgeManager;
     private volatile boolean running;
     private ServerSocket serverSocket;
     private ExecutorService clientPool;
     private Thread acceptThread;
+
+    public RootCommandServer(android.content.Context context) {
+        this.edgeCdpBridgeManager = new EdgeCdpBridgeManager(context);
+    }
 
     public synchronized void start() throws Exception {
         if (running) return;

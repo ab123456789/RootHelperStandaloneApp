@@ -47,7 +47,7 @@ public class RootHelperService extends Service {
 
     private synchronized void ensureServerStarted() {
         if (server != null) return;
-        server = new RootCommandServer();
+        server = new RootCommandServer(this);
         try {
             server.start();
         } catch (Exception e) {

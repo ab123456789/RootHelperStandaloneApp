@@ -1,15 +1,12 @@
 package com.dadatu.roothelper;
 
-import android.net.LocalSocket;
-import android.net.LocalSocketAddress;
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
 
 import com.topjohnwu.superuser.Shell;
 
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
@@ -18,18 +15,21 @@ public class EdgeCdpBridgeManager {
 
     private static final String DEFAULT_PACKAGE = "com.microsoft.emmx";
     private static final int DEFAULT_PORT = 19222;
-    private static final String DEFAULT_SERIAL = "emulator-5554";
 
+    private final Context appContext;
     private final Object lock = new Object();
     private volatile String forwardedSocketName;
+
+    public EdgeCdpBridgeManager(Context context) {
+        this.appContext = context.getApplicationContext();
+    }
 
     public JSONObject openEdgeBridge() throws Exception {
         synchronized (lock) {
             EdgeInfo info = resolveEdgeInfo();
             boolean reused = info.socketName.equals(forwardedSocketName) && isLocalPortOpen(DEFAULT_PORT);
             if (!reused) {
-                adbKillForward(DEFAULT_PORT);
-                adbForward(DEFAULT_PORT, info.socketName);
+                startRootBridge(DEFAULT_PORT, info.socketName);
                 forwardedSocketName = info.socketName;
             }
             return bridgeInfo(reused, DEFAULT_PACKAGE, info.pid, info.socketName, DEFAULT_PORT);
@@ -89,76 +89,21 @@ public class EdgeCdpBridgeManager {
         }
     }
 
-    private void adbForward(int localPort, String socketName) throws Exception {
-        String cmd = "host-serial:" + DEFAULT_SERIAL + ":forward:tcp:" + localPort + ";localabstract:" + socketName;
-        byte[] response = adbRequest(cmd);
-        String body = decodeAdbBody(response);
-        if (body != null && !body.isEmpty() && !body.contains(String.valueOf(localPort))) {
-            throw new IllegalStateException("adb forward failed: " + body);
+    private void startRootBridge(int localPort, String socketName) throws Exception {
+        ApplicationInfo ai = appContext.getApplicationInfo();
+        String apkPath = ai.sourceDir;
+        String cmd = "pkill -f 'com.dadatu.roothelper.RootEdgeBridgeMain " + localPort + "' 2>/dev/null || true; "
+            + "CLASSPATH=" + shellQuote(apkPath)
+            + " app_process /system/bin com.dadatu.roothelper.RootEdgeBridgeMain "
+            + localPort + " " + shellQuote(socketName)
+            + " >/data/local/tmp/root-edge-bridge.log 2>&1 </dev/null &";
+        execRoot(cmd);
+
+        for (int i = 0; i < 10; i++) {
+            Thread.sleep(300);
+            if (isLocalPortOpen(localPort)) return;
         }
-    }
-
-    private void adbKillForward(int localPort) throws Exception {
-        adbRequest("host-serial:" + DEFAULT_SERIAL + ":killforward:tcp:" + localPort);
-    }
-
-    private byte[] adbRequest(String command) throws Exception {
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress("127.0.0.1", 5037), 2000);
-            socket.setSoTimeout(2000);
-            OutputStream out = socket.getOutputStream();
-            InputStream in = socket.getInputStream();
-            byte[] payload = String.format("%04x%s", command.length(), command).getBytes();
-            out.write(payload);
-            out.flush();
-
-            byte[] status = readExact(in, 4);
-            if (status == null) {
-                throw new IllegalStateException("adb status empty");
-            }
-            String statusText = new String(status);
-            ByteArrayOutputStream rest = new ByteArrayOutputStream();
-            byte[] buf = new byte[4096];
-            try {
-                while (true) {
-                    int n = in.read(buf);
-                    if (n < 0) break;
-                    if (n == 0) continue;
-                    rest.write(buf, 0, n);
-                }
-            } catch (Exception ignored) {
-            }
-            if (!"OKAY".equals(statusText)) {
-                throw new IllegalStateException("adb request failed: " + decodeAdbBody(rest.toByteArray()));
-            }
-            return rest.toByteArray();
-        }
-    }
-
-    private byte[] readExact(InputStream in, int length) throws Exception {
-        byte[] data = new byte[length];
-        int off = 0;
-        while (off < length) {
-            int n = in.read(data, off, length - off);
-            if (n < 0) return null;
-            off += n;
-        }
-        return data;
-    }
-
-    private String decodeAdbBody(byte[] body) {
-        if (body == null || body.length == 0) return "";
-        String s = new String(body);
-        if (s.length() >= 4) {
-            try {
-                int n = Integer.parseInt(s.substring(0, 4), 16);
-                if (s.length() >= 4 + n) {
-                    return s.substring(4, 4 + n);
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return s;
+        throw new IllegalStateException("root edge bridge did not start");
     }
 
     private void ensureEdgeRunning(String pkg) throws Exception {
