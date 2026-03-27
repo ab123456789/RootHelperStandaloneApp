@@ -119,7 +119,7 @@ public class RootCommandServer {
                     argv.add(argvJson.getString(i));
                 }
 
-                Shell.Result result = Shell.cmd(argv).exec();
+                Shell.Result result = Shell.cmd(argv.toArray(new String[0])).exec();
                 JSONObject obj = new JSONObject();
                 obj.put("ok", true);
                 obj.put("argv", new JSONArray(argv));
