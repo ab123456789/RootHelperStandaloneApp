@@ -205,6 +205,14 @@ public class EdgeCdpBridgeManager {
         return stdout == null ? "" : stdout;
     }
 
+    private String execRootAllowFailure(String shellCommand) {
+        try {
+            return execRoot(shellCommand);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
     private String httpGet(String url, int connectTimeoutMs, int readTimeoutMs) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setConnectTimeout(connectTimeoutMs);

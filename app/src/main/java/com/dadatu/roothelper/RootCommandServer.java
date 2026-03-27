@@ -174,13 +174,17 @@ public class RootCommandServer {
         } catch (Throwable e) {
             log("handle exception=" + android.util.Log.getStackTraceString(e));
             try {
-                OutputStream out = socket.getOutputStream();
-                JSONObject obj = new JSONObject();
-                obj.put("ok", false);
-                obj.put("error", String.valueOf(e.getMessage()));
-                obj.put("errorType", e.getClass().getName());
-                writeJson(out, 500, obj);
-                log("error response sent");
+                if (!socket.isClosed() && socket.isConnected() && !socket.isOutputShutdown()) {
+                    OutputStream out = socket.getOutputStream();
+                    JSONObject obj = new JSONObject();
+                    obj.put("ok", false);
+                    obj.put("error", String.valueOf(e.getMessage()));
+                    obj.put("errorType", e.getClass().getName());
+                    writeJson(out, 500, obj);
+                    log("error response sent");
+                } else {
+                    log("socket already closed before error response");
+                }
             } catch (Exception inner) {
                 log("failed to send error response=" + android.util.Log.getStackTraceString(inner));
             }
