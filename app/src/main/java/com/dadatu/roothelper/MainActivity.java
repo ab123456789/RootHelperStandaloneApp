@@ -23,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private TextView textStatus;
+    private TextView textCdpStatus;
     private TextView textOutput;
     private Button btnStart;
     private Button btnStop;
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         textStatus = findViewById(R.id.textStatus);
+        textCdpStatus = findViewById(R.id.textCdpStatus);
         textOutput = findViewById(R.id.textOutput);
         btnStart = findViewById(R.id.btnStart);
         btnStop = findViewById(R.id.btnStop);
@@ -48,26 +50,39 @@ public class MainActivity extends AppCompatActivity {
         btnBoot = findViewById(R.id.btnBoot);
         btnEdge = findViewById(R.id.btnEdge);
 
+        applyRootConnectedState();
+        applyCdpDisconnectedState();
+
         btnStart.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
             startHelperService();
             Thread.sleep(1200);
             return "Root 桥接正常\n\n" + HttpUtils.get(RootHelperConfig.HOST + "/ping");
-        }));
+        }, () -> {
+            applyRootConnectedState();
+            applyCdpDisconnectedState();
+        }, null));
 
         btnStop.setOnClickListener(v -> runTask(getString(R.string.status_working), () -> {
             stopService(new Intent(this, RootHelperService.class));
             return "桥接模式已断开";
-        }));
+        }, () -> {
+            applyRootDisconnectedState();
+            applyCdpDisconnectedState();
+        }, null));
 
         btnPing.setOnClickListener(v -> runTask(getString(R.string.status_working),
-            () -> HttpUtils.get(RootHelperConfig.HOST + "/ping")));
+            () -> HttpUtils.get(RootHelperConfig.HOST + "/ping"),
+            this::applyRootConnectedState,
+            null));
 
         btnId.setOnClickListener(v -> runTask(getString(R.string.status_working),
             () -> "Root 权限正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/exec",
                 RootHelperConfig.TOKEN,
                 "{\"argv\":[\"id\"]}"
-            )));
+            ),
+            this::applyRootConnectedState,
+            null));
 
         btnBoot.setOnClickListener(v -> toggleBoot());
 
@@ -76,7 +91,9 @@ public class MainActivity extends AppCompatActivity {
                 RootHelperConfig.HOST + "/edge/open",
                 RootHelperConfig.TOKEN,
                 "{}"
-            )));
+            ),
+            this::applyCdpConnectedState,
+            () -> applyCdpDisconnectedState()));
 
         updateBootButton();
         ensureNotificationPermission();
@@ -92,13 +109,15 @@ public class MainActivity extends AppCompatActivity {
         String run() throws Exception;
     }
 
-    private void runTask(String status, Task task) {
+    private void runTask(String status, Task task, Runnable onSuccess, Runnable onError) {
         setBusy(true);
         textStatus.setText(status);
         executor.execute(() -> {
             String result;
+            boolean ok = false;
             try {
                 result = task.run();
+                ok = true;
             } catch (Throwable t) {
                 String msg = t.getMessage();
                 if (msg == null || msg.isEmpty()) msg = t.toString();
@@ -114,9 +133,14 @@ public class MainActivity extends AppCompatActivity {
                 result = "ERROR: " + msg;
             }
             String finalResult = result;
+            boolean finalOk = ok;
             runOnUiThread(() -> {
                 textOutput.setText(finalResult);
-                textStatus.setText(R.string.status_ready);
+                if (finalOk) {
+                    if (onSuccess != null) onSuccess.run();
+                } else {
+                    if (onError != null) onError.run();
+                }
                 setBusy(false);
             });
         });
@@ -129,6 +153,30 @@ public class MainActivity extends AppCompatActivity {
         btnId.setEnabled(!busy);
         btnBoot.setEnabled(!busy);
         btnEdge.setEnabled(!busy);
+    }
+
+    private void applyRootConnectedState() {
+        textStatus.setText("Root 桥接正常");
+        textStatus.setTextColor(getColor(R.color.rabbit_success));
+        textStatus.setBackgroundResource(R.drawable.bg_rabbit_status);
+    }
+
+    private void applyRootDisconnectedState() {
+        textStatus.setText("桥接模式已断开");
+        textStatus.setTextColor(getColor(R.color.rabbit_danger));
+        textStatus.setBackgroundResource(R.drawable.bg_rabbit_status_danger);
+    }
+
+    private void applyCdpConnectedState() {
+        textCdpStatus.setText("CDP 连接正常");
+        textCdpStatus.setTextColor(getColor(R.color.rabbit_success));
+        textCdpStatus.setBackgroundResource(R.drawable.bg_rabbit_status);
+    }
+
+    private void applyCdpDisconnectedState() {
+        textCdpStatus.setText("CDP 未连接");
+        textCdpStatus.setTextColor(getColor(R.color.rabbit_text_muted));
+        textCdpStatus.setBackgroundResource(R.drawable.bg_rabbit_status_idle);
     }
 
     private void startHelperService() {
@@ -156,7 +204,6 @@ public class MainActivity extends AppCompatActivity {
         );
         updateBootButton();
         textOutput.setText(!enabled ? "开机自启已开启" : "开机自启已关闭");
-        textStatus.setText(R.string.status_ready);
     }
 
     private void updateBootButton() {
