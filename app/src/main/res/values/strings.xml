@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">RootHelper</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_working">Working…</string>
+    <string name="title_roothelper">RootHelper Standalone</string>
+    <string name="desc_roothelper">独立版 roothelper app。可启动/停止系统侧本地 HTTP roothelper，并测试 ping / id。</string>
+    <string name="btn_start_service">启动 RootHelper</string>
+    <string name="btn_stop_service">停止 RootHelper</string>
+    <string name="btn_ping">Ping</string>
+    <string name="btn_run_id">执行 id</string>
+    <string name="btn_toggle_boot">切换开机自启</string>
+    <string name="label_output">输出</string>
+    <string name="notif_channel_name">RootHelper Service</string>
+    <string name="notif_channel_desc">Keeps the local roothelper service alive.</string>
+    <string name="notif_text">RootHelper 正在运行</string>
+</resources>
