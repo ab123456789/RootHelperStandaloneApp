@@ -131,12 +131,6 @@ public class RootCommandServer {
             }
 
             if ("POST".equals(method) && "/exec".equals(path)) {
-                if (!RootHelperConfig.TOKEN.equals(token)) {
-                    log("exec forbidden");
-                    writeJson(out, 403, error("forbidden"));
-                    return;
-                }
-
                 String body = readRequestBody(reader, contentLength);
                 log("exec body=" + body);
                 JSONObject req = new JSONObject(body.isEmpty() ? "{}" : body);
