@@ -116,11 +116,6 @@ public class RootCommandServer {
 
             if ("POST".equals(method) && "/edge/open".equals(path)) {
                 log("edge open start");
-                if (!RootHelperConfig.TOKEN.equals(token)) {
-                    log("edge open forbidden");
-                    writeJson(out, 403, error("forbidden"));
-                    return;
-                }
                 String edgeBody = readRequestBody(reader, contentLength);
                 log("edge open body=" + edgeBody);
                 JSONObject result = edgeCdpBridgeManager.openEdgeBridge();
