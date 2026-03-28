@@ -129,25 +129,37 @@ public class RootCommandServer {
                 String body = readRequestBody(reader, contentLength);
                 log("exec body=" + body);
                 JSONObject req = new JSONObject(body.isEmpty() ? "{}" : body);
+
+                String command = req.optString("command", "");
                 JSONArray argvJson = req.optJSONArray("argv");
-                if (argvJson == null || argvJson.length() == 0) {
-                    log("exec invalid argv");
-                    writeJson(out, 400, error("argv must be non-empty string list"));
+                boolean hasCommand = command != null && !command.isEmpty();
+                boolean hasArgv = argvJson != null && argvJson.length() > 0;
+
+                if (hasCommand == hasArgv) {
+                    log("exec invalid payload");
+                    writeJson(out, 400, error("provide exactly one of: command or argv"));
                     return;
                 }
 
-                List<String> argv = new ArrayList<>();
-                for (int i = 0; i < argvJson.length(); i++) {
-                    argv.add(argvJson.getString(i));
+                String shellCommand;
+                JSONObject obj = new JSONObject();
+                obj.put("ok", true);
+
+                if (hasCommand) {
+                    shellCommand = command;
+                    obj.put("command", command);
+                } else {
+                    List<String> argv = new ArrayList<>();
+                    for (int i = 0; i < argvJson.length(); i++) {
+                        argv.add(argvJson.getString(i));
+                    }
+                    shellCommand = buildShellCommand(argv);
+                    obj.put("argv", new JSONArray(argv));
                 }
 
-                String shellCommand = buildShellCommand(argv);
                 String execCommand = buildSuExecCommand(shellCommand);
                 log("exec command=" + execCommand);
                 Shell.Result result = Shell.cmd(execCommand).exec();
-                JSONObject obj = new JSONObject();
-                obj.put("ok", true);
-                obj.put("argv", new JSONArray(argv));
                 obj.put("shellCommand", shellCommand);
                 obj.put("execCommand", execCommand);
                 obj.put("returncode", result.getCode());
