@@ -19,19 +19,18 @@ public final class HttpUtils {
         return read(conn);
     }
 
-    public static String postJson(String url, String token, String body) throws Exception {
+    public static String postJson(String url, String body) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setConnectTimeout(3000);
         conn.setReadTimeout(8000);
         conn.setRequestMethod("POST");
         byte[] payload = body.getBytes(StandardCharsets.UTF_8);
         conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-        conn.setRequestProperty("X-Token", token);
         conn.setRequestProperty("Connection", "close");
         conn.setDoOutput(true);
         conn.setFixedLengthStreamingMode(payload.length);
         try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes(StandardCharsets.UTF_8));
+            os.write(payload);
             os.flush();
         }
         return read(conn);

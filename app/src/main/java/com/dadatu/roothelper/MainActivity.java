@@ -80,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
         btnId.setOnClickListener(v -> runTask(
             () -> "Root 权限正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/exec",
-                RootHelperConfig.TOKEN,
                 "{\"argv\":[\"id\"]}"
             ),
             this::applyRootConnectedState,
@@ -89,7 +88,6 @@ public class MainActivity extends AppCompatActivity {
         btnSelinuxPermissive.setOnClickListener(v -> runTask(
             () -> "SELinux 已切换为宽松模式\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/exec",
-                RootHelperConfig.TOKEN,
                 "{\"argv\":[\"sh\",\"-c\",\"setenforce 0\"]}"
             ),
             this::applyRootConnectedState,
@@ -100,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
         btnEdge.setOnClickListener(v -> runTask(
             () -> "CDP 连接正常\n\n" + HttpUtils.postJson(
                 RootHelperConfig.HOST + "/edge/open",
-                RootHelperConfig.TOKEN,
                 "{}"
             ),
             () -> {
